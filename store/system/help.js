@@ -150,7 +150,7 @@ exports.run = async (cmd, _instance) => {
 					inline: true
 				},
 				{
-					name: "_\n_**Spefications**" + ` (\`\`${info.information.length}\`\`)`,
+					name: "_\n_**Specifications**" + ` (\`\`${info.information.length}\`\`)`,
 					value: spec_args,
 					inline: true
 				},
