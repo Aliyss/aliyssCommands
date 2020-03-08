@@ -1,5 +1,6 @@
 /* Global Packages */
 const merge = require('deepmerge');
+const tableToJson = require('tabletojson');
 
 const webrequest = require("../~modules/webrequest");
 
@@ -11,9 +12,9 @@ exports.information = {
 				{
 					name: "_\n_**Total**".padEnd(24, `~`).replace(/~/g, "⠀"),
 					value: 
-						"**Cases:** " + mainData['cases'] +
-						"\n**Deaths:** " + mainData['deaths'] +
-						"\n**Recovered:** " + mainData['recovered'],
+						"**Cases:** " + mainData['TotalCases'] +
+						"\n**Deaths:** " + mainData['TotalDeaths'] +
+						"\n**Recovered:** " + mainData['TotalRecovered'],
 					inline: true
 				}
 			]
@@ -25,9 +26,9 @@ exports.information = {
 				{
 					name: "_\n_**New**".padEnd(24, `~`).replace(/~/g, "⠀"),
 					value:
-						"**New Cases:** " + mainData['todayCases'] +
-						"\n**New Deaths:** " + mainData['todayDeaths'] +
-						"\n**New Recovered:** " + (mainData['todayRecovered'] ? mainData['todayRecovered'] : 'No Info'),
+						"**New Cases:** " + (mainData['NewCases'] ? mainData['NewCases'] : 0) +
+						"\n**New Deaths:** " + (mainData['NewDeaths'] ? mainData['NewDeaths'] : 0) +
+						"\n**New Recovered:** " + (mainData['NewRecovered'] ? mainData['NewRecovered'] : 'Unsupported'),
 					inline: true
 				}
 			]
@@ -39,23 +40,43 @@ exports.information = {
 				{
 					name: "_\n_**Other**".padEnd(24, `~`).replace(/~/g, "⠀"),
 					value:
-						"**Active:** " + (mainData['cases'] - (mainData['recovered'] + mainData['deaths'])) +
-						"\n**Critical:** " + mainData['critical'],
+						"**Active:** " + mainData['ActiveCases'] +
+						"\n**Critical:** " + mainData['Serious,Critical'] +
+						"\n**Cases/1M People:** " + mainData['Tot Cases/1M pop'],
 					inline: true
 				}
 			]
 		}
 	},
-	list: function (mainData) {
+	list: function (mainData, arg) {
 		let field_val = [];
 
-		for (let n = 0; n < 10; n++) {
+		for (let n = 0; n < 5; n++) {
 			field_val.push({
-				name: `_\n_**${n + 1}. ${mainData[n].country}**`.padEnd(24, `~`).replace(/~/g, "⠀"),
-				value: "Cases: " + mainData[n]['cases'],
+				name: `_\n_**${n + 1}. ${mainData[n]['Country,Other']}**`.padEnd(24, `~`).replace(/~/g, "⠀"),
+				value: 
+					"**Cases:** " + mainData[n]['TotalCases'] + 
+					"\n**Cases/1M People** " + mainData[n]['Tot Cases/1M pop'],
 				inline: false
 			})
 		}
+		
+		if (arg) {
+			mainData = mainData.filter((el) => {
+				return el['Country,Other'].toLowerCase() === arg;
+			})[0]
+			if (mainData && mainData['index'] >= 5) {
+				field_val.push({
+					name: `_\n_**${mainData['index'] + 1}. ${mainData['Country,Other']}**`.padEnd(24, `~`).replace(/~/g, "⠀"),
+					value:
+						"**Cases:** " + mainData['TotalCases'] +
+						"\n**Cases/1M People** " + mainData['Tot Cases/1M pop'],
+					inline: false
+				})
+			}
+			
+		}
+		
 		return {
 			fields: field_val,
 		}	
@@ -112,39 +133,66 @@ exports.run = async (cmd, _instance) => {
 		arg = cmd.usableContent.join(" ").toLowerCase()
 	}
 	
-	let mainData = await webrequest.getData(`https://corona.lmao.ninja/${addition}`)
+	let mainData = await webrequest.getData(`https://mafuyu.kireisubs.org/`)
 
 	if (!mainData) {
 		throw new Error('Server is unreachable.')	
-	} else if (!JSON.parse(mainData)) {
-		throw new Error('Server Information is invalid.')
 	}
 	
-	mainData = JSON.parse(mainData)
+	mainData = tableToJson.convert(mainData);
+
+	mainData = mainData[0].map((el, i) => {
+		el['TotalCases'] = el['TotalCases'] ? parseInt(el['TotalCases'].replace(/,/g, '')) : 0
+		el['TotalDeaths'] = el['TotalDeaths'] ? parseInt(el['TotalDeaths'].replace(/,/g, '')) : 0
+		el['TotalRecovered'] =  el['TotalRecovered'] ? parseInt(el['TotalRecovered'].replace(/,/g, '')) : 0
+		el['NewCases'] = el['NewCases'] ? parseInt(el['NewCases'].replace(/,/g, '')) : 0
+		el['NewDeaths'] = el['NewDeaths'] ? parseInt(el['NewDeaths'].replace(/,/g, '')) : 0
+		el['NewRecovered'] = el['NewRecovered'] ? parseInt(el['NewRecovered'].replace(/,/g, '')) : 0
+		el['ActiveCases'] = el['ActiveCases'] ? parseInt(el['ActiveCases'].replace(/,/g, '')) : 0
+		el['Serious,Critical'] = el['Serious,Critical'] ? parseInt(el['Serious,Critical'].replace(/,/g, '')) : 0
+		el['Tot Cases/1M pop'] = el['Tot Cases/1M pop'] ? parseFloat(el['Tot Cases/1M pop'].replace(/,/g, '')) : 0
+		el['index'] = i;
+		return el
+	})
 	
 	if (addition === 'all') {
-		function_name = 'total'
+		mainData = mainData.reduce(function(previousValue, currentValue) {
+			return {
+				['Country,Other'] : 'the World',
+				['TotalCases'] : previousValue['TotalCases'] + currentValue['TotalCases'],
+				['TotalDeaths'] : previousValue['TotalDeaths'] + currentValue['TotalDeaths'],
+				['TotalRecovered'] : previousValue['TotalRecovered'] + currentValue['TotalRecovered'],
+				['NewCases'] : previousValue['NewCases'] + currentValue['NewCases'],
+				['NewDeaths'] : previousValue['NewDeaths'] + currentValue['NewDeaths'],
+				['NewRecovered'] : previousValue['NewRecovered'] + currentValue['NewRecovered'],
+				['ActiveCases'] : previousValue['ActiveCases'] + currentValue['ActiveCases'],
+				['Serious,Critical'] : previousValue['Serious,Critical'] + currentValue['Serious,Critical'],
+				['Tot Cases/1M pop'] : 'Unsupported',
+			}
+		});
 	}
 	
 	if (function_name !== 'list' && addition === 'countries'){
 		mainData = mainData.filter((el) => {
-			return el['country'].toLowerCase() === arg;
+			return el['Country,Other'].toLowerCase() === arg;
 		})[0]
+	} else {
+		mainData['Country,Other'] = 'the World'
 	}
 
 	if (!mainData) {
-		throw new Error('Invalid Country as Input.')
+		throw new Error('No Information for given Country found.')
 	}
 	
 	let base_embed = embedding(mainData);
 	
-	return await merge(base_embed, await information[function_name](mainData))
+	return await merge(base_embed, await information[function_name](mainData, arg))
 	
 }
 
 const embedding = (mainData) => {
 	return {
-		title: 'Information to COVID-19',
+		title: 'Information to COVID-19 for ' + mainData['Country,Other'],
 		description: null,
 		color: 3093208,
 		footer: null

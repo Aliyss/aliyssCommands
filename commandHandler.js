@@ -1,3 +1,4 @@
+const watch = require("node-watch");
 
 exports.store = async (cmd, _instance) => {
 	let commandInfo;
@@ -43,7 +44,7 @@ const searcher = async (cmd, _instance) => {
 
 	let filteredFiles = files.filter(item => {
 		if (item.includes("owner")) {
-			if (_instance.owners && _instance.owners.includes(cmd.author.id)) {
+			if (_instance.layout.owners && _instance.layout.owners.includes(cmd.author.id)) {
 				return item
 			}
 		} else {
@@ -63,6 +64,12 @@ const searcher = async (cmd, _instance) => {
 	}
 	
 	cmd.usableContent = used_file.args;
+
+	// watch(__dirname + used_file.filename.replace('.', ''), (event, filename) => {
+	// 	if (filename) {
+	// 		delete require.cache[require.resolve(used_file.filename)];
+	// 	}
+	// });
 	
 	return await runFile(used_file.filename, cmd, _instance);
 	
@@ -108,7 +115,7 @@ const parser = (_instance, files, full_args) => {
 
 		}
 
-		if (used_file.matched < matched && (helpFile(files[i]).arguments.length <= args.length)) {
+		if (used_file.matched < matched && (helpFile(files[i]).arguments.length <= args.length || helpFile(files[i]).overRideArguments)) {
 			used_file = {
 				filename: files[i],
 				matched: matched,
