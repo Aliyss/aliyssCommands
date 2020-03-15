@@ -10,7 +10,7 @@ exports.command = async (cmd, _instance) => {
 		_instance.commandHandler = await this.addCommandHandler([_instance.type, _instance.name])
 	}
 	
-	if (!cmd.isCommand) {
+	if (!cmd.isCommand && !_instance.layout.nlp) {
 		return;
 	}
 

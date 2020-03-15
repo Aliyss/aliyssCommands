@@ -95,10 +95,10 @@ exports.information = {
 
 		let embed_arr = [
 			this.location(first_result),
-			this.other(first_result),
 			this.time(first_result),
 			this.status(first_result),
 			this.temperature(first_result),
+			this.other(first_result),
 			extra_field,
 			override_embed
 		];

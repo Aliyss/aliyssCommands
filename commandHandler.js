@@ -2,14 +2,20 @@ const watch = require("node-watch");
 
 exports.store = async (cmd, _instance) => {
 	let commandInfo;
+	let error = false
 	try {
-		commandInfo = await searcher(cmd, _instance)
+		if (!cmd.isCommand) {
+			commandInfo = await nlpCheck(cmd, _instance)
+		} else {
+			commandInfo = await searcher(cmd, _instance)
+		}
 	} catch (e) {
 		commandInfo = "``⛔ Error: " + e.message + "``"
+		error = e.message
 	}
 	
-	if (!commandInfo) {
-		return;
+	if (!commandInfo || error) {
+		return {command: commandInfo, error: error};
 	}
 	
 	if (commandInfo && typeof commandInfo === 'object' && commandInfo.constructor === Object) {
@@ -55,7 +61,7 @@ const searcher = async (cmd, _instance) => {
 	const used_file = parser(_instance, filteredFiles, cmd.arrayContent);
 
 	if (used_file.matched === 0) {
-		return;
+		return await nlpCheck(cmd, _instance)
 	}
 
 	if (used_file.filename.endsWith("help.js")) {
@@ -65,11 +71,11 @@ const searcher = async (cmd, _instance) => {
 	
 	cmd.usableContent = used_file.args;
 
-	// watch(__dirname + used_file.filename.replace('.', ''), (event, filename) => {
-	// 	if (filename) {
-	// 		delete require.cache[require.resolve(used_file.filename)];
-	// 	}
-	// });
+/*	watch(__dirname + used_file.filename.replace('.', ''), (event, filename) => {
+		if (filename) {
+			delete require.cache[require.resolve(used_file.filename)];
+		}
+	});*/
 	
 	return await runFile(used_file.filename, cmd, _instance);
 	
@@ -137,4 +143,55 @@ const helpFile = (file) => {
 const runFile = async (file, cmd, _instance) => {
 	let commandFile = require(file);
 	return await commandFile.run(cmd, _instance);
+}
+
+const nlpCheck = async (cmd, _instance) => {
+	if (!_instance.nlp) {
+		return;
+	}
+	return await nlpProcess(cmd, _instance)
+}
+
+const nlpProcess = async (cmd, _instance) => {
+	
+	let options = {}
+
+	if (!cmd.isCommand && !_instance.layout.nlp.no_prefix) {
+		return;
+	}
+	
+	if (!_instance.users[cmd.author.id].context) {
+		_instance.users[cmd.author.id].context = {}
+	}
+
+	if (!_instance.users[cmd.author.id].sentiment) {
+		_instance.users[cmd.author.id].sentimentLog = [0]
+	}
+
+	if (!cmd.isCommand && _instance.layout.nlp.no_prefix) {
+		cmd.cleanContent = cmd.content;
+	}
+
+	_instance.users[cmd.author.id].context.sentiment = _instance.users[cmd.author.id].sentimentLog.reduce(
+		(a,b) => a + b, 0) / _instance.users[cmd.author.id].sentimentLog.length
+	
+	const response = await _instance.nlp.process('', cmd.cleanContent, _instance.users[cmd.author.id].context)
+	if (response && response.intent === 'None') {
+		throw new Error('No response found.')
+	}
+	if (!cmd.isCommand && _instance.layout.nlp.no_prefix > response.score) {
+		throw new Error('No response found.')
+	}
+	if (!response || !response.answer) {
+		throw new Error('No response found.')
+	}
+	if (response.sentiment.score !== 0) {
+		_instance.users[cmd.author.id].sentimentLog.push(response.sentiment.score)
+	}
+	
+	for (let i = 0; i < response.entities.length; i++) {
+		_instance.users[cmd.author.id].context[response.entities[i].entity] = response.entities[i].resolution.value
+	}
+	
+	return response.answer
 }

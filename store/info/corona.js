@@ -4,7 +4,6 @@ const tableToJson = require('tabletojson');
 
 const webrequest = require("../~modules/webrequest");
 
-const hiddenKeys = ['world']
 exports.information = {
 	total: function (mainData) {
 		return {
@@ -128,14 +127,26 @@ exports.run = async (cmd, _instance) => {
 	
 	let arg = ''
 
-	if (cmd.usableContent[0] || function_name === 'list') {
+	if (_instance.users[cmd.author.id].context.coronaLocation) {
+		addition = 'countries'
+		arg = _instance.users[cmd.author.id].context.coronaLocation
+	}
+
+	if (function_name === 'list') {
+		addition = 'countries'
+	}
+	
+	if (cmd.usableContent[0]) {
 		addition = 'countries'
 		arg = cmd.usableContent.join(" ").toLowerCase()
+		if ((arg === 'all' || arg === 'world') && function_name !== 'list') {
+			addition = 'all'
+		}
 	}
 	
 	let mainData = await webrequest.getData(`https://mafuyu.kireisubs.org/`)
 
-	if (!mainData) {
+	if (!mainData && mainData.length <= 100) {
 		throw new Error('Server is unreachable.')	
 	}
 	
@@ -176,12 +187,14 @@ exports.run = async (cmd, _instance) => {
 		mainData = mainData.filter((el) => {
 			return el['Country,Other'].toLowerCase() === arg;
 		})[0]
+		if (!mainData) {
+			throw new Error('No Information for given Country found.')
+		}
+		if (!_instance.users[cmd.author.id].context.coronaLocation) {
+			_instance.users[cmd.author.id].context.coronaLocation = arg
+		}
 	} else {
 		mainData['Country,Other'] = 'the World'
-	}
-
-	if (!mainData) {
-		throw new Error('No Information for given Country found.')
 	}
 	
 	let base_embed = embedding(mainData);
