@@ -129,7 +129,7 @@ exports.run = async (cmd, _instance) => {
 
 	if (_instance.users[cmd.author.id].context.coronaLocation) {
 		addition = 'countries'
-		arg = _instance.users[cmd.author.id].context.coronaLocation
+		arg = _instance.users[cmd.author.id].context.coronaLocation.toLowerCase()
 	}
 
 	if (function_name === 'list') {

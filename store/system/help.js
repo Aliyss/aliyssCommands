@@ -42,6 +42,7 @@ function recHelpObj(obj, arr, args) {
 }
 
 exports.help = {
+	name: 'Help',
 	arguments: [],
 	optional: ["{module}", "{command}"],
 	information: Object.keys({})

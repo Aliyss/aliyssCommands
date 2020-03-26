@@ -164,7 +164,7 @@ const nlpProcess = async (cmd, _instance) => {
 		_instance.users[cmd.author.id].context = {}
 	}
 
-	if (!_instance.users[cmd.author.id].sentiment) {
+	if (!_instance.users[cmd.author.id].sentimentLog) {
 		_instance.users[cmd.author.id].sentimentLog = [0]
 	}
 
@@ -174,8 +174,9 @@ const nlpProcess = async (cmd, _instance) => {
 
 	_instance.users[cmd.author.id].context.sentiment = _instance.users[cmd.author.id].sentimentLog.reduce(
 		(a,b) => a + b, 0) / _instance.users[cmd.author.id].sentimentLog.length
+
+	const response = await _instance.nlp.process('',cmd.cleanContent.trim(), _instance.users[cmd.author.id].context)
 	
-	const response = await _instance.nlp.process('', cmd.cleanContent, _instance.users[cmd.author.id].context)
 	if (response && response.intent === 'None') {
 		throw new Error('No response found.')
 	}
