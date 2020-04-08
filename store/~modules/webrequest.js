@@ -6,7 +6,7 @@ exports.getData = (url) => {
 		https.get(url, (resp) => {
 			let data = '';
 
-			// A chunk of data has been recieved.
+			// A chunk of data has been received.
 			resp.on('data', (chunk) => {
 				data += chunk;
 			});

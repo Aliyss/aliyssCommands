@@ -1,9 +1,10 @@
 const weather = require('weather-js');
 const merge = require('deepmerge');
+const { propertyNames } = require('../~builder');
 
 function embedding(first_result) {
 	return {
-		title: first_result.title + first_result.location.name,
+		title: exports.help.name + ": " + first_result.location.name,
 		description: null,
 		color: 16776960,
 		footer: null
@@ -108,42 +109,27 @@ exports.information = {
 };
 
 exports.help = {
-	name: "Weather",
+	name: "Weather Info",
 	description: "Gets the current weather status of the given location.",
 	arguments: ["[City]"],
 	optional: ["{CountryCode}"],
-	information: Object.keys(exports.information)
+	information: Object.keys(exports.information),
+	overRideArguments: true
 };
 
 exports.run = async (cmd, _instance) => {
-	
-	let information = exports.information;
 
-	let function_name = "info";
-	let main_title = "Weather for: ";
+	let { args, function_name } = propertyNames.getPropertyName(exports.information, cmd.usableContent);
 
-
-	let propertyNames = Object.keys(information).filter(function (propertyName) {
-		return propertyName.indexOf(cmd.usableContent[0]) === 0;
-	});
-
-	if (propertyNames.length !== 0) {
-		function_name = propertyNames[0];
-		cmd.usableContent.shift()
-	} else {
-		function_name = "info";
-	}
-
-	let search = cmd.usableContent.join(", ");
+	let search = args.join(", ");
 	if (!search) {
 		throw new Error('Necessary Argument: [City] is missing.')
 	}
 	let weather_info = await getWeather(search);
 	
 	if (weather_info && Array.isArray(weather_info)) {
-		weather_info[0].title = main_title;
 		let base_embed = embedding(weather_info[0]);
-		return await merge(base_embed, await information[function_name](weather_info[0]))
+		return await merge(base_embed, await exports.information[function_name](weather_info[0]))
 	} else {
 		throw new Error('Invalid Argument: [City] was not found.')
 	}

@@ -1,9 +1,10 @@
 const translate = require("@vitalets/google-translate-api");
 const merge = require('deepmerge');
+const { propertyNames } = require('../~builder');
 
 function embedding(result) {
 	return {
-		title: result.title,
+		title: exports.help.name,
 		description: null,
 		color: 16776960,
 		footer: null
@@ -59,23 +60,7 @@ exports.help = {
 
 exports.run = async (cmd, _instance) => {
 	
-	let information = exports.information;
-
-	let function_name = "info";
-	let main_title = "Translation";
-
-	let args = cmd.usableContent;
-
-	let propertyNames = Object.keys(information).filter(function (propertyName) {
-		return propertyName.indexOf(args[0]) === 0;
-	});
-
-	if (propertyNames.length !== 0) {
-		function_name = propertyNames[0];
-		args.shift()
-	} else {
-		function_name = "info";
-	}
+	let { args, function_name } = propertyNames.getPropertyName(exports.information, cmd.usableContent);
 
 	let to = "en";
 	if (/to:/.test(args[args.length-1]) && args[args.length-1].split(":")[1]) {
@@ -113,13 +98,12 @@ exports.run = async (cmd, _instance) => {
 			return err
 		});
 	}
-
-	result.title = main_title;
+	
 	result.to = to;
 	result.from_x = result.output.from.language.iso;
 
 	let base_embed = embedding(result);
 
-	return await merge(base_embed, await information[function_name](result));
+	return await merge(base_embed, await exports.information[function_name](result));
 
 };

@@ -97,6 +97,9 @@ const parser = (_instance, files, full_args) => {
 		
 		let files_arr = currentFile.split('/')
 
+		files_arr.shift();
+		files_arr.shift();
+		
 		let start = true;
 		let end = false;
 		let args = full_args.slice();
@@ -108,7 +111,7 @@ const parser = (_instance, files, full_args) => {
 
 				if (files_arr[j] === _instance.type) {
 
-				} else if (files_arr[j].startsWith(args[0])) {
+				} else if (files_arr[j].startsWith(args[0]) && args[0] !== "") {
 					args.shift();
 					matched++;
 					end = true
@@ -156,7 +159,7 @@ const nlpProcess = async (cmd, _instance) => {
 	
 	let options = {}
 
-	if (!cmd.isCommand && !_instance.layout.nlp.no_prefix) {
+	if (!cmd.isCommand && (!_instance.layout.nlp.no_prefix && !_instance.layout.nlp.on_command)) {
 		return;
 	}
 	
@@ -174,24 +177,40 @@ const nlpProcess = async (cmd, _instance) => {
 
 	_instance.users[cmd.author.id].context.sentiment = _instance.users[cmd.author.id].sentimentLog.reduce(
 		(a,b) => a + b, 0) / _instance.users[cmd.author.id].sentimentLog.length
-
-	const response = await _instance.nlp.process('',cmd.cleanContent.trim(), _instance.users[cmd.author.id].context)
+	
+	const response = await _instance.nlp.process('', cmd.cleanContent.trim(), _instance.users[cmd.author.id].context)
 	
 	if (response && response.intent === 'None') {
 		throw new Error('No response found.')
 	}
-	if (!cmd.isCommand && _instance.layout.nlp.no_prefix > response.score) {
-		throw new Error('No response found.')
-	}
-	if (!response || !response.answer) {
-		throw new Error('No response found.')
-	}
-	if (response.sentiment.score !== 0) {
-		_instance.users[cmd.author.id].sentimentLog.push(response.sentiment.score)
-	}
 	
+	if (!cmd.isCommand && !response.intent.startsWith('command.')) {
+		if (_instance.layout.nlp.no_prefix > response.score) {
+			throw new Error('Response Text scored too low.')
+		}
+	}
+
 	for (let i = 0; i < response.entities.length; i++) {
 		_instance.users[cmd.author.id].context[response.entities[i].entity] = response.entities[i].resolution.value
+	}
+	
+	if (response.intent.startsWith('command.')) {
+		if (!cmd.isCommand && _instance.layout.nlp.on_command > response.score) {
+			throw new Error('Response Command scored too low.')
+		} else {
+			cmd.arrayContent = [response.intent.split('.')[1]]
+			cmd.entities = response.entities;
+			//let tempResponse = await searcher(cmd, _instance);
+			//console.log(tempResponse)
+		}
+	}
+	
+	if (!response.answer) {
+		throw new Error('No response answer found')
+	}
+	
+	if (response.sentiment.score !== 0) {
+		_instance.users[cmd.author.id].sentimentLog.push(response.sentiment.score)
 	}
 	
 	return response.answer
