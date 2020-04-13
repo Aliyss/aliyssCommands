@@ -213,5 +213,16 @@ const nlpProcess = async (cmd, _instance) => {
 		_instance.users[cmd.author.id].sentimentLog.push(response.sentiment.score)
 	}
 	
+	if (_instance.layout.nlp.timeout) {
+		let max = _instance.layout.nlp.timeout.max;
+		let min = _instance.layout.nlp.timeout.min;
+		await timeout(Math.floor(Math.random() * (max - min + 1)) + min)
+	}
+	
+	
 	return response.answer
+}
+
+function timeout(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
 }

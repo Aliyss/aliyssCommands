@@ -10,6 +10,13 @@ exports.help = {
 
 exports.run = async (cmd, _instance) => {
 	let content = "";
+	
+	if (cmd.usableContent.length > 0) {
+		if (cmd.usableContent[0] !== 'everyone' && cmd.usableContent[0] !== 'here') {
+			return `Okiii, let's ping <@${cmd.usableContent[0]}>`
+		}
+	}
+	
 	let m = await cmd.send('Ponging...')
 	if (!m.createdTimestamp) {
 		if (!m.timestamp) {
