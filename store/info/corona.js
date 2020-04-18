@@ -1,9 +1,9 @@
 /* Global Packages */
 const merge = require('deepmerge');
-const tableToJson = require('tabletojson');
-const { propertyNames } = require('../~builder');
+const { propertyNames } = require('../../builders');
 
-const webrequest = require("../~modules/webrequest");
+const webrequest = require("../../modules/webrequest");
+const { compromiseEntities } = require("../../builders");
 
 exports.information = {
 	total: function (mainData) {
@@ -141,6 +141,20 @@ exports.run = async (cmd, _instance) => {
 		arg = _instance.users[cmd.author.id].context.coronaLocation.toLowerCase()
 	}
 
+	if (cmd.nlp) {
+		let compromisedContent = compromiseEntities.getCompromise(cmd.content)
+		let places = compromisedContent.places().json()
+		if (places) {
+			places = places[0].terms
+			if (places.length > 0) {
+				args = [];
+				for (let i = 0; i < places.length; i++) {
+					args.push(places[i].text)
+				}
+			}
+		}
+	}
+
 	if (function_name === 'list') {
 		addition = 'countries'
 	}
@@ -160,7 +174,7 @@ exports.run = async (cmd, _instance) => {
 		search = ''
 	}
 	
-	let mainData = await webrequest.getData(`https://corona.lmao.ninja/` + addition + "/" + search)
+	let mainData = await webrequest.getData(`https://corona.lmao.ninja/v2/` + addition + "/" + search)
 
 	if (!mainData || mainData.length <= 50) {
 		throw new Error('Server is unreachable.')
@@ -177,7 +191,7 @@ exports.run = async (cmd, _instance) => {
 			_instance.users[cmd.author.id].context.coronaLocation = arg
 		}
 	} else if (function_name !== 'list') {
-		let secData = await webrequest.getData(`https://corona.lmao.ninja/all`)
+		let secData = await webrequest.getData(`https://corona.lmao.ninja/v2/all`)
 		if (!secData || secData.length <= 50) {
 			throw new Error('Server is unreachable.')
 		}

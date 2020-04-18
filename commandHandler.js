@@ -4,7 +4,7 @@ exports.store = async (cmd, _instance) => {
 	let commandInfo;
 	let error = false
 	try {
-		if (!cmd.isCommand) {
+		if (!cmd.isPrefixed) {
 			commandInfo = await nlpCheck(cmd, _instance)
 		} else {
 			commandInfo = await searcher(cmd, _instance)
@@ -50,7 +50,7 @@ const searcher = async (cmd, _instance) => {
 
 	let filteredFiles = files.filter(item => {
 		if (item.includes("owner")) {
-			if (_instance.layout.owners && _instance.layout.owners.includes(cmd.author.id)) {
+			if (cmd.layout.owners && cmd.layout.owners.includes(cmd.author.id)) {
 				return item
 			}
 		} else {
@@ -159,7 +159,7 @@ const nlpProcess = async (cmd, _instance) => {
 	
 	let options = {}
 
-	if (!cmd.isCommand && (!_instance.layout.nlp.no_prefix && !_instance.layout.nlp.on_command)) {
+	if (!cmd.isPrefixed && (!cmd.layout.nlp.no_prefix && !cmd.layout.nlp.on_command)) {
 		return;
 	}
 	
@@ -171,7 +171,7 @@ const nlpProcess = async (cmd, _instance) => {
 		_instance.users[cmd.author.id].sentimentLog = [0]
 	}
 
-	if (!cmd.isCommand && _instance.layout.nlp.no_prefix) {
+	if (!cmd.isPrefixed && (cmd.layout.nlp.no_prefix || cmd.layout.nlp.on_command)) {
 		cmd.cleanContent = cmd.content;
 	}
 
@@ -184,25 +184,25 @@ const nlpProcess = async (cmd, _instance) => {
 		throw new Error('No response found.')
 	}
 	
-	if (!cmd.isCommand && !response.intent.startsWith('command.')) {
-		if (_instance.layout.nlp.no_prefix > response.score) {
+	if (!cmd.isPrefixed && !response.intent.startsWith('command.')) {
+		if (!cmd.layout.nlp.no_prefix) {
+			throw new Error('Response Text not a command and not prefixed.')
+		} else if (cmd.layout.nlp.no_prefix > response.score) {
 			throw new Error('Response Text scored too low.')
 		}
 	}
-
-	for (let i = 0; i < response.entities.length; i++) {
-		_instance.users[cmd.author.id].context[response.entities[i].entity] = response.entities[i].resolution.value
-	}
 	
 	if (response.intent.startsWith('command.')) {
-		if (!cmd.isCommand && _instance.layout.nlp.on_command > response.score) {
+		if (!cmd.isPrefixed && cmd.layout.nlp.on_command > response.score) {
 			throw new Error('Response Command scored too low.')
-		} else {
-			cmd.arrayContent = [response.intent.split('.')[1]]
-			cmd.entities = response.entities;
-			//let tempResponse = await searcher(cmd, _instance);
-			//console.log(tempResponse)
 		}
+		
+		cmd.arrayContent = [response.intent.split('.')[1]]
+		cmd.entities = response.entities;
+		cmd.nlp = true;
+		let tempResponse = await searcher(cmd, _instance);
+		return tempResponse;
+		
 	}
 	
 	if (!response.answer) {
@@ -218,7 +218,6 @@ const nlpProcess = async (cmd, _instance) => {
 		let min = _instance.layout.nlp.timeout.min;
 		await timeout(Math.floor(Math.random() * (max - min + 1)) + min)
 	}
-	
 	
 	return response.answer
 }

@@ -1,6 +1,6 @@
 const weather = require('weather-js');
 const merge = require('deepmerge');
-const { propertyNames } = require('../~builder');
+const { propertyNames, compromiseEntities } = require('../../builders');
 
 function embedding(first_result) {
 	return {
@@ -120,7 +120,21 @@ exports.help = {
 exports.run = async (cmd, _instance) => {
 
 	let { args, function_name } = propertyNames.getPropertyName(exports.information, cmd.usableContent);
-
+	
+	if (cmd.nlp) {
+		let compromisedContent = compromiseEntities.getCompromise(cmd.content)
+		let places = compromisedContent.places().json()
+		if (places) {
+			places = places[0].terms
+			if (places.length > 0) {
+				args = [];
+				for (let i = 0; i < places.length; i++) {
+					args.push(places[i].text)
+				}
+			}
+		}
+	}
+	
 	let search = args.join(", ");
 	if (!search) {
 		throw new Error('Necessary Argument: [City] is missing.')

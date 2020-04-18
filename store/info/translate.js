@@ -1,6 +1,6 @@
 const translate = require("@vitalets/google-translate-api");
 const merge = require('deepmerge');
-const { propertyNames } = require('../~builder');
+const { propertyNames } = require('../../builders');
 
 function embedding(result) {
 	return {

@@ -10,10 +10,10 @@ exports.command = async (cmd, _instance) => {
 		_instance.commandHandler = await this.addCommandHandler([_instance.type, _instance.name])
 	}
 	
-	if (!cmd.isCommand && !_instance.layout.nlp) {
+	if (!cmd.isPrefixed && !cmd.layout.nlp) {
 		return;
 	}
-
+	
 	return await commandHandler.store(cmd, _instance);
 	
 }
