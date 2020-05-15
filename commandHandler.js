@@ -137,6 +137,12 @@ const parser = (_instance, files, full_args) => {
 }
 
 const helpFile = (file) => {
+
+	watch(__dirname + file.replace('.', '').replace(/\//, '\\'), (event, filename) => {
+		if (filename) {
+			delete require.cache[require.resolve(file)];
+		}
+	});
 	
 	let commandFile = require(file);
 	return commandFile.help;

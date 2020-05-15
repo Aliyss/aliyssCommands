@@ -14,16 +14,110 @@ function embedding(member) {
 }
 
 exports.information = {
+	id: function(member) {
+		return {
+			fields: [
+				{
+					name: "_\n_**ID**",
+					value: `\`\`${member.id}\`\``,
+					inline: true
+				}
+			]
+		}
+	},
+	avatar: function(member) {
+		return {
+			thumbnail: null,
+			image: {
+				url: member.user.avatarUrl.replace(".webp", ".png") + "?size=2048"
+			},
+		}
+	},
+	nickname: function (member) {
+		return {
+			fields: [
+				{
+					name: "_\n_**Nickname**",
+					value: `\`\`${member.nickname ? member.nickname : 'No Nickname'}\`\``,
+					inline: true
+				}
+			]
+		}
+	},
+	roles: function(member) {
+		return {
+			fields: [
+				{
+					name: `_\n_**Roles** (\`\`${member.roles.length}\`\`)`,
+					value: member.roles.length > 0 ? member.roles.join(' \`\`|\`\` ') : '\`\`No roles found.\`\`'
+				}
+			]
+		}
+	},
+	username: function (member) {
+		return {
+			fields: [
+				{
+					name: "_\n_**Username**",
+					value: `\`\`${member.fullname}\`\``,
+					inline: true
+				}
+			]
+		}
+	},
+	sentiment: function(member) {
+		return {
+			fields: [
+				{
+					name: "_\n_**Sentiment**",
+					value: `\`\`${ member.context.sentiment ? member.context.sentiment.toString().substring(0,4) : 0 }\`\``,
+					inline: true
+				},
+			]
+		}
+	},
 	bot: function(member) {
 		return {
 			fields: [
 				{
-					name: "_\n_**Bot?**".padEnd(24, `~`).replace(/~/g, "⠀"),
+					name: "_\n_**Bot?**",
 					value: `\`\`${member.bot}\`\``,
 					inline: true
 				},
 			]
 		}
+	},
+	info: function (member) {
+
+		let override_embed = {
+			description: null,
+			timestamp: null,
+			thumbnail: {
+				url: member.avatarUrl
+			}
+		};
+		
+		let emptyEmbed = {
+			fields: [{
+				name: "_\n_",
+				value: `_ _`,
+				inline: true
+			}]
+		}
+
+		let embed_arr = [
+			this.bot(member),
+			this.sentiment(member),
+			emptyEmbed,
+			this.nickname(member),
+			this.username(member),
+			emptyEmbed,
+			this.id(member),
+			this.roles(member),
+			override_embed
+		];
+
+		return merge.all(embed_arr);
 	}
 }
 
@@ -32,7 +126,7 @@ exports.help = {
 	description: "Returns Pong and maybe a bit more information to the swiftness of the client.",
 	arguments: [],
 	optional: [],
-	information: Object.keys({})
+	information: Object.keys(exports.information)
 };
 
 exports.run = async (cmd, _instance) => {

@@ -17,7 +17,7 @@ exports.run = async (cmd, _instance) => {
 		}
 	}
 	
-	let m = await cmd.send('Ponging...')
+	let m = await cmd.send('Pinging...')
 	if (!m.createdTimestamp) {
 		if (!m.timestamp) {
 			m.createdTimestamp = new Date().getTime();
