@@ -29,7 +29,7 @@ exports.information = {
 		return {
 			thumbnail: null,
 			image: {
-				url: member.user.avatarUrl.replace(".webp", ".png") + "?size=2048"
+				url: member.avatarUrl + "?size=2048"
 			},
 		}
 	},
@@ -100,7 +100,7 @@ exports.information = {
 		let emptyEmbed = {
 			fields: [{
 				name: "_\n_",
-				value: `_ _`,
+				value: `_\n_`,
 				inline: true
 			}]
 		}
@@ -135,11 +135,7 @@ exports.run = async (cmd, _instance) => {
 	let { args, function_name } = propertyNames.getPropertyName(exports.information, cmd.usableContent);
 	
 	if (args.length > 0) {
-		try {
-			member = await converterFind.userByChannelGroup(args.join(cmd.splitter), _instance, cmd.channelGroup)
-		} catch (e) {
-			console.log(e)
-		}
+		member = await converterFind.userByChannelGroup(args.join(cmd.splitter), _instance, cmd.channelGroup)
 	} else {
 		member = await converterFind.userByChannelGroup(cmd.author.id, _instance, cmd.channelGroup)
 	}

@@ -142,17 +142,7 @@ exports.run = async (cmd, _instance) => {
 	}
 
 	if (cmd.nlp) {
-		let compromisedContent = compromiseEntities.getCompromise(cmd.content)
-		let places = compromisedContent.places().json()
-		if (places) {
-			places = places[0].terms
-			if (places.length > 0) {
-				args = [];
-				for (let i = 0; i < places.length; i++) {
-					args.push(places[i].text)
-				}
-			}
-		}
+		args = compromiseEntities.getPlaces(cmd, args)
 	}
 
 	if (function_name === 'list') {
