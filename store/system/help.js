@@ -163,5 +163,7 @@ exports.run = async (cmd, _instance) => {
 		})
 	}
 
-	return embed;
+	return {
+		embed: embed
+	};
 };

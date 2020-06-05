@@ -133,7 +133,9 @@ exports.run = async (cmd, _instance) => {
 	
 	if (weather_info && Array.isArray(weather_info)) {
 		let base_embed = embedding(weather_info[0]);
-		return await merge(base_embed, await exports.information[function_name](weather_info[0]))
+		return {
+			embed: await merge(base_embed, await exports.information[function_name](weather_info[0]))
+		}
 	} else {
 		throw new Error('Invalid Argument: [City] was not found.')
 	}

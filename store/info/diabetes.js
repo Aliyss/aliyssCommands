@@ -1,9 +1,16 @@
 /* Global Packages */
+const { MessageAttachment, MessageEmbed } = require("discord.js");
+
 const merge = require('deepmerge');
 const { propertyNames } = require('../../builders');
 
-const webrequest = require("../../modules/webrequest");
-const asciichart = require ('asciichart')
+const { webrequest, chart } = require("../../modules");
+const asciichart = require ('asciichart');
+
+if (global.CanvasGradient === undefined) {
+	global.CanvasGradient = function() {};
+}
+
 
 exports.information = {
 	current: function (mainData) {
@@ -32,7 +39,28 @@ exports.information = {
 			]
 		}
 	},
-	graph: function (graphData) {
+	graph: function (graphData, args, _instance) {
+
+		let s = []
+		let l = []
+		for (let i = 0; i < graphData.length; i++) {
+			s.push((graphData[i]['sgv'] / 18));
+			let dateBG = new Date(graphData[i]['date'])
+			l.push(("0" + dateBG.getHours()).slice(-2) + ':' + ("0" + dateBG.getMinutes()).slice(-2))
+		}
+		let image = chart.getChart(s.reverse(), l.reverse(), 'BG')
+		const file = new MessageAttachment(image, 'name.png');
+
+		return {
+			embed: {
+				image: {
+					url: "attachment://name.png"
+				}
+			},
+			files: [file]
+		}
+	},
+	deprecated_graph: function (graphData) {
 		let s = new Array(graphData.length)
 		let x = new Array(graphData.length)
 		for (let i = 0; i < graphData.length; i++) {
@@ -41,8 +69,8 @@ exports.information = {
 		}
 		let startDate = new Date(graphData[graphData.length - 1]['date'])
 		let endDate = new Date(graphData[0]['date'])
-		let startDateStr = startDate.getHours() + ":" + startDate.getMinutes()
-		let endDateStr = endDate.getHours() + ":" + endDate.getMinutes()
+		let startDateStr = ("0" + startDate.getHours()).slice(-2) + ':' + ("0" + startDate.getMinutes()).slice(-2)
+		let endDateStr = ("0" + endDate.getHours()).slice(-2) + ':' + ("0" + endDate.getMinutes()).slice(-2)
 		return {
 			fields: [
 				{
@@ -103,8 +131,8 @@ exports.run = async (cmd, _instance) => {
 	}
 
 	let mainData;
-	if (function_name === 'graph') {
-		mainData = await webrequest.getData(arg + '/api/v1/entries.json' )
+	if (function_name === 'graph' || function_name === 'deprecated_graph') {
+		mainData = await webrequest.getData(arg + '/api/v1/entries.json?count=30' )
 	} else {
 		mainData = await webrequest.getData(arg + '/pebble' )
 	}
@@ -126,7 +154,18 @@ exports.run = async (cmd, _instance) => {
 	
 	let base_embed = embedding(mainData);
 	
-	return await merge(base_embed, await exports.information[function_name](mainData, arg))
+	let returnObj = await exports.information[function_name](mainData, arg, _instance)
+	
+	if (returnObj.embed) {
+		returnObj.embed = await merge(base_embed, returnObj.embed)
+		return returnObj
+	}
+
+	returnObj = await merge(base_embed, returnObj)
+	return {
+		embed: returnObj
+	}
+	
 	
 }
 
@@ -134,7 +173,7 @@ const embedding = (mainData) => {
 	return {
 		title: 'Diabetes Information',
 		description: null,
-		color: 3093208,
+		color: 16711680,
 		footer: {
 			text: "Last Updated"
 		},

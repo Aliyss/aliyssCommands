@@ -1,4 +1,6 @@
 module.exports = {
 	webrequest: require("./webrequest"),
-	cronJobs: require("./cronJobs")
+	knowledge: require("./knowledge"),
+	cronJobs: require("./cronJobs"),
+	chart: require("./chart")
 }

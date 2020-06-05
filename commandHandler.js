@@ -11,17 +11,15 @@ exports.store = async (cmd, _instance) => {
 		}
 	} catch (e) {
 		if (cmd.isPrefixed) {
-			commandInfo = "``⛔ Error: " + e.message + "``"
+			commandInfo = {
+				content: "``⛔ Error: " + e.message + "``"
+			}
 		}
 		error = e.message
 	}
 	
 	if (!commandInfo && error) {
 		return {command: commandInfo, error: error};
-	}
-	
-	if (commandInfo && typeof commandInfo === 'object' && commandInfo.constructor === Object) {
-		commandInfo = {embed: commandInfo}	
 	}
 	
 	return commandInfo
@@ -235,7 +233,9 @@ const nlpProcess = async (cmd, _instance) => {
 		await timeout(Math.floor(Math.random() * (max - min + 1)) + min)
 	}
 	
-	return response.answer
+	return {
+		content: response.answer
+	}
 }
 
 function timeout(ms) {

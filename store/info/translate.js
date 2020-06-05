@@ -104,6 +104,8 @@ exports.run = async (cmd, _instance) => {
 
 	let base_embed = embedding(result);
 
-	return await merge(base_embed, await exports.information[function_name](result));
+	return {
+		embed: await merge(base_embed, await exports.information[function_name](result))
+	}
 
 };

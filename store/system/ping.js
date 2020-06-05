@@ -30,5 +30,7 @@ exports.run = async (cmd, _instance) => {
 	if (_instance.client.ws && _instance.client.ws.ping) {
 		content += "\nAPI Latency: " + Math.round(_instance.client.ws.ping) + "ms."
 	}
-	return content;
+	return {
+		content: content
+	}
 };

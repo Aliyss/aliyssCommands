@@ -311,7 +311,9 @@ exports.run = async (cmd, _instance) => {
 
 	let base_embed = embedding(mainData);
 
-	return await merge(base_embed, await exports.information[function_name](mainData, args, { fullHueLink, context }))
+	return {
+		embed: await merge(base_embed, await exports.information[function_name](mainData, args, { fullHueLink, context }))
+	}
 
 }
 

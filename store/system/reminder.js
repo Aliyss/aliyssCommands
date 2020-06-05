@@ -23,37 +23,68 @@ exports.run = async (cmd, _instance) => {
 		
 		let currentDate = new Date();
 		let diffDate = 0;
+		let cmdText = cmd.usableContent.join(cmd.splitter)
 		
 		for (let i = 0; i < cmd.entities.length; i++) {
 			if (cmd.entities[i].entity === 'datetime') {
 				date = new Date(cmd.entities[i].resolution.values[0].timex)
-				diffDate += Math.abs(currentDate - date);
+				diffDate += (date - currentDate);
 				srcText += cmd.entities[i].sourceText + ' '
-			}
-			if (cmd.entities[i].entity === 'duration') {
+			} else if (cmd.entities[i].entity === 'duration' || cmd.entities[i].entity === 'set') {
 				date = addIso8601Period(cmd.entities[i].resolution.values[0].timex)
-				diffDate += Math.abs(currentDate - date);
+				diffDate += (date - currentDate);
+				srcText += cmd.entities[i].sourceText + ' '
+			} else if (cmd.entities[i].entity === 'date') {
+				let dateX = cmd.entities[i].resolution.date
+				let year = dateX.getFullYear()
+				let month = dateX.getMonth()
+				let day = dateX.getDate()
+				currentDate.setFullYear(year)
+				currentDate.setMonth(month)
+				currentDate.setDate(day)
+				diffDate = 0
+				srcText += cmd.entities[i].sourceText + ' '
+			} else if (cmd.entities[i].entity === 'daterange' || cmd.entities[i].entity === 'datetimerange') {
+				let dateStart = cmd.entities[i].resolution.start
+				let dateEnd = cmd.entities[i].resolution.end
+				if (dateStart.getTime() < currentDate.getTime()) {
+					diffDate = (dateEnd - currentDate) / 2
+				} else {
+					diffDate += (dateStart - currentDate);
+				}
 				srcText += cmd.entities[i].sourceText + ' '
 			}
 		}
 		
 		date = new Date((currentDate).getTime() + diffDate);
 
-		if (date && srcText) {
+		if (date < currentDate) {
+			throw new Error('Date and Time is set in the past. How am I supposed to remind you.')
+		} else if (date && srcText) {
 			let newJob = new CronJob(date, () => {
-				cmd.send(`Reminder: ${cmd.usableContent.join(cmd.splitter)}`)
+				cmd.send(`<@${cmd.author.id}>\n\nReminder: ${cmdText}`)
 			})
+			
+			try {
+				newJob.start();
+			} catch (e) {
+				throw new Error('I was probably stuck in the debugger... Help me please! Alice is being mean.')
+			}
+			
 
-			newJob.start();
-
-			return 'Will send reminder ' + srcText + '!'
+			return {
+				content: 'Will send reminder ' + srcText.trim() + '!'
+			}
 		}
 		
-		return "Yikes can't do it. Sry."
-
+		return {
+			content: "Yikes can't do it. Sry."
+		}
 	}
 	
-	return "I am too lazy to do this without NLP Integration."
+	return {
+		content: "I am too lazy to do this without NLP Integration."
+	}
 };
 
 // This is completely stolen. I couldn't be bothered to write it on my own. Thanks StackOverflow person.

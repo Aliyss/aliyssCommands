@@ -9,5 +9,7 @@ exports.help = {
 };
 
 exports.run = async (cmd, _instance) => {
-	return await _instance.saveUsers()
+	return {
+		content: await _instance.saveUsers()
+	}
 };

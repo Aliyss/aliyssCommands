@@ -1,15 +1,17 @@
+
 const converterFind = require('../../../aliyssConverter/converterFind')
 const merge = require('deepmerge');
 const propertyNames = require("../../builders/propertyNames");
+const { knowledge } = require("../../modules")
 
 /*Local Functions*/
 
 function embedding(member) {
 	return {
-		title: exports.help.name + ": " + member.context.username,
+		title: exports.help.name + ": " + (member.context ? member.context.username : member.username),
 		description: null,
 		color: 14755960,
-		footer: null
+		footer: member.footer || null
 	}
 }
 
@@ -29,7 +31,7 @@ exports.information = {
 		return {
 			thumbnail: null,
 			image: {
-				url: member.avatarUrl + "?size=2048"
+				url: member.avatarUrl
 			},
 		}
 	},
@@ -90,8 +92,8 @@ exports.information = {
 	info: function (member) {
 
 		let override_embed = {
-			description: null,
 			timestamp: null,
+			description: member.description || null,
 			thumbnail: {
 				url: member.avatarUrl
 			}
@@ -117,7 +119,7 @@ exports.information = {
 			override_embed
 		];
 
-		return merge.all(embed_arr);
+		return merge.all(embed_arr)
 	}
 }
 
@@ -135,11 +137,37 @@ exports.run = async (cmd, _instance) => {
 	let { args, function_name } = propertyNames.getPropertyName(exports.information, cmd.usableContent);
 	
 	if (args.length > 0) {
-		member = await converterFind.userByChannelGroup(args.join(cmd.splitter), _instance, cmd.channelGroup)
+		try {
+			member = await converterFind.userByChannelGroup(args.join(cmd.splitter), _instance, cmd.channelGroup)
+		} catch (e) {
+			let knowledgeQuery = '&limit=1&types=Person&query=' + args.join(cmd.splitter)
+			let tempMember = JSON.parse(await knowledge.getData(knowledgeQuery))['itemListElement'][0]
+			member = {
+				id: '000000000000000000',
+				avatarUrl: tempMember.result.image.contentUrl,
+				username: tempMember.result.name,
+				fullname: tempMember.result.name,
+				nickname: tempMember.result.name.split(' ')[0],
+				roles: tempMember.result['@type'],
+				context: {
+					sentiment: tempMember.resultScore / 1000,
+					username: tempMember.result.name
+				},
+				bot: false,
+				description: tempMember.result.detailedDescription.articleBody,
+				footer: {
+					url: tempMember.result.url || null,
+					text: tempMember.result.description
+				},
+			}
+		}
 	} else {
 		member = await converterFind.userByChannelGroup(cmd.author.id, _instance, cmd.channelGroup)
 	}
 	
 	let base_embed = embedding(member);
-	return await merge(base_embed, await exports.information[function_name](member))
+	return {
+		embed: await merge(base_embed, await exports.information[function_name](member)),
+		options: {"allowedMentions": { "roles" : [], "users": []}}
+	}
 };
