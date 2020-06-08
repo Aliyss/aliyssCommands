@@ -198,6 +198,19 @@ const nlpProcess = async (cmd, _instance) => {
 		return;
 	}
 	
+	if (response.answer && response.answer.includes('{{') && response.answer.includes('}}')) {
+		response.answer = '¯\\_(ツ)_/¯'
+	}
+
+	if (response.intent.startsWith('context.')) {
+		cmd.entities = response.entities;
+		for (let i = 0; i < cmd.entities.length; i++) {
+			if (cmd.entities[i].entity === response.intent.split('.')[1]) {
+				_instance.users[cmd.author.id].context[response.intent.split('.')[1]] = cmd.entities[i].sourceText
+			}
+		}
+	}
+	
 	if (!cmd.isPrefixed && !response.intent.startsWith('command.')) {
 		if (!cmd.layout.nlp.no_prefix) {
 			return;
@@ -214,9 +227,7 @@ const nlpProcess = async (cmd, _instance) => {
 		cmd.arrayContent = [response.intent.split('.')[1]]
 		cmd.entities = response.entities;
 		cmd.nlp = true;
-		let tempResponse = await searcher(cmd, _instance);
-		return tempResponse;
-		
+		return await searcher(cmd, _instance);
 	}
 	
 	if (!response.answer) {
